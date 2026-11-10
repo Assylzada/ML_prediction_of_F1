@@ -1,0 +1,144 @@
+/* ==========================================================
+   App components: progress, toolbar, sliders, explorer,
+   literature map, run settings. Loaded after extra.css.
+   ========================================================== */
+
+[hidden] { display: none !important; }
+
+/* progress */
+.progress {
+    height: 6px;
+    margin-top: 12px;
+    background: #20242b;
+    border-radius: 3px;
+    overflow: hidden;
+}
+.progress.big { height: 14px; border-radius: 4px; margin-bottom: 16px; transform: skewX(-18deg); }
+.progress-bar {
+    width: 0;
+    height: 100%;
+    background: linear-gradient(90deg, #a30500, var(--x-red), var(--x-red-light));
+    box-shadow: 0 0 12px rgba(225, 6, 0, .6);
+    transition: width .5s var(--x-ease);
+}
+.run-button:disabled { opacity: .55; cursor: wait; }
+.run-button.inline { width: auto; padding: 13px 28px; }
+
+.log-box {
+    max-height: 280px;
+    overflow: auto;
+    font-size: 12px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+/* generic controls */
+.toolbar { display: flex; flex-wrap: wrap; gap: 18px; align-items: end; margin-bottom: 20px; }
+.toolbar label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: var(--x-muted);
+    font-size: 10px;
+    letter-spacing: .14em;
+}
+select {
+    min-width: 240px;
+    padding: 10px 12px;
+    background: var(--x-bg-2);
+    color: var(--x-text);
+    border: 1px solid var(--x-border);
+    border-radius: 6px;
+    font: inherit;
+    font-size: 14px;
+}
+select:focus-visible { border-color: var(--x-red); }
+.btn-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
+.ghost-btn {
+    padding: 10px 16px;
+    background: transparent;
+    color: var(--x-muted);
+    border: 1px solid var(--x-border);
+    border-radius: 6px;
+    font: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    cursor: pointer;
+    transition: background .2s, color .2s, border-color .2s;
+}
+.ghost-btn:hover { background: var(--x-red); border-color: var(--x-red); color: #fff; }
+
+/* run settings */
+.check-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 8px 18px;
+    margin: 18px 0;
+}
+.check-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 1px solid var(--x-border);
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+}
+.check-item input { accent-color: var(--x-red); }
+.check-item small { color: var(--x-muted); margin-left: auto; font-size: 10px; letter-spacing: .06em; }
+.check-item.off { opacity: .45; cursor: not-allowed; }
+
+/* sliders */
+.sliders { display: grid; gap: 18px; }
+.slider-row label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    font-size: 13px;
+    color: var(--x-muted);
+}
+.slider-row strong { color: var(--x-text); font-variant-numeric: tabular-nums; }
+input[type=range] { width: 100%; accent-color: var(--x-red); }
+
+/* probability bars (what-if / explorer) */
+.prob-row { display: grid; grid-template-columns: 210px 1fr 56px; gap: 12px; align-items: center; margin: 9px 0; font-size: 13px; }
+.prob-row .name { color: var(--x-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prob-row.tuned .name { color: var(--x-red-light); font-weight: 700; }
+.prob-row.base .name { font-style: italic; }
+.prob-row .val { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
+.prob-row.yes .val { color: var(--x-good); }
+.prob-mark { margin-left: 6px; color: var(--x-good); font-weight: 700; }
+
+/* explorer table highlights */
+table tr.picked td:first-child { box-shadow: inset 4px 0 0 var(--x-red); }
+td.hit-yes { color: var(--x-good); font-weight: 700; }
+td.hit-no { color: var(--x-muted); }
+
+/* literature */
+.status-pill {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    border: 1px solid;
+}
+.status-pill.done { color: var(--x-good); border-color: rgba(0, 214, 143, .5); background: rgba(0, 214, 143, .1); }
+.status-pill.partial { color: var(--x-yellow); border-color: rgba(255, 214, 10, .5); background: rgba(255, 214, 10, .08); }
+.status-pill.na { color: var(--x-muted); border-color: var(--x-border); }
+.status-pill.missing { color: var(--x-red-light); border-color: rgba(225, 6, 0, .5); }
+#litTable td { white-space: normal; vertical-align: top; min-width: 150px; line-height: 1.5; }
+
+/* small tables inside panels */
+.mini-table { width: 100%; margin: 10px 0 18px; }
+.mini-table td, .mini-table th { padding: 8px 10px; }
+.run-info { display: flex; flex-wrap: wrap; gap: 8px 28px; align-items: center; font-size: 13px; color: var(--x-muted); }
+.run-info strong { color: var(--x-text); }
+.warn { color: var(--x-yellow); }
+
+@media (max-width: 900px) {
+    .prob-row { grid-template-columns: 120px 1fr 48px; }
+}

@@ -1,0 +1,13 @@
+flask
+pandas
+numpy
+scipy
+scikit-learn
+matplotlib
+joblib
+
+# optional - models/plots are added automatically when installed:
+# xgboost      -> XGBoost
+# lightgbm     -> LightGBM, LightGBM (balanced)
+# torch        -> LSTM, GRU, Bi-LSTM, TCN, CNN-BiLSTM   (CPU build is enough)
+# shap         -> SHAP importance chart

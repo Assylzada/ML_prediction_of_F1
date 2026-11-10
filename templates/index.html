@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>F1 ML Lab</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/extra.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/charts.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+</head>
+
+<body>
+<div class="app">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+
+        <div class="logo">
+            <div class="logo-box">F1</div>
+            <div>
+                <strong>ML LAB</strong>
+                <small>RACE DATA ANALYTICS</small>
+            </div>
+        </div>
+
+        <div class="nav-title">PIPELINE</div>
+
+        <nav>
+            <button class="nav-item active" data-section="overview">Overview</button>
+            <button class="nav-item" data-section="preparation"><span>03</span> Data Preparation</button>
+            <button class="nav-item" data-section="features"><span>04</span> Feature Engineering</button>
+            <button class="nav-item" data-section="models"><span>05</span> Model Training</button>
+            <button class="nav-item" data-section="cv"><span>06</span> Cross-validation</button>
+            <button class="nav-item" data-section="tuning"><span>07</span> Hyperparameter Tuning</button>
+            <button class="nav-item" data-section="comparison"><span>08</span> Model Comparison</button>
+            <button class="nav-item" data-section="predictions"><span>★</span> Predictions</button>
+        </nav>
+
+        <div class="nav-title">APP</div>
+        <nav>
+            <button class="nav-item" data-section="explorer"><span>▶</span> Race Explorer</button>
+            <button class="nav-item" data-section="predictor"><span>⚙</span> What-if Predictor</button>
+            <button class="nav-item" data-section="literature"><span>📖</span> Literature Map</button>
+            <button class="nav-item" data-section="lab"><span>⚑</span> Run Settings</button>
+        </nav>
+
+        <div class="nav-title">SYSTEM</div>
+
+        <button id="runButton" class="run-button">RUN ML PIPELINE</button>
+        <div class="progress"><div id="progressBar" class="progress-bar"></div></div>
+        <div id="status" class="status">READY</div>
+
+    </aside>
+
+
+    <!-- MAIN -->
+    <main class="main">
+
+        <!-- OVERVIEW -->
+        <section id="overview" class="page active">
+
+            <div class="top-header">
+                <div>
+                    <div class="eyebrow">FORMULA 1 · MACHINE LEARNING</div>
+                    <h1>Race Outcome <span>Intelligence</span></h1>
+                    <p>
+                        Predict whether a driver will finish on the podium
+                        using only information available before the race.
+                    </p>
+                </div>
+                <div class="race-badge">CLASSIFICATION</div>
+            </div>
+
+            <div class="red-line"></div>
+
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <span>DATASET</span>
+                    <strong id="datasetRows">—</strong>
+                    <small>race records (driver × race)</small>
+                </div>
+                <div class="kpi-card">
+                    <span>TRAIN</span>
+                    <strong id="trainRows">—</strong>
+                    <small id="trainYears">earlier seasons</small>
+                </div>
+                <div class="kpi-card">
+                    <span>TEST</span>
+                    <strong id="testRows">—</strong>
+                    <small id="testYears">latest seasons (unseen)</small>
+                </div>
+                <div class="kpi-card">
+                    <span>BEST MODEL</span>
+                    <strong id="bestModel" class="model-name">—</strong>
+                    <small>selected by 5-fold CV (PR-AUC)</small>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+
+                <div class="panel hero-panel">
+                    <div class="panel-label">PROJECT OBJECTIVE</div>
+                    <h2>Can we predict a podium?</h2>
+                    <p>
+                        The target is binary: <strong>1</strong> means podium finish
+                        and <strong>0</strong> means no podium.
+                    </p>
+
+                    <div class="formula">
+                        <span>TARGET</span>
+                        <code>podium = position ≤ 3</code>
+                    </div>
+
+                    <div class="formula">
+                        <span>INPUT</span>
+                        <code>
+                            grid + qualifying + driver form + team form +
+                            championship standing + circuit history
+                        </code>
+                    </div>
+
+                    <div class="formula">
+                        <span>NO LEAKAGE</span>
+                        <code>all form features use only previous races (shift 1)</code>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-label">TARGET DISTRIBUTION</div>
+                    <div id="targetChart" class="target-chart">
+                        <div>
+                            <strong id="podiumCount">—</strong>
+                            <span>PODIUM</span>
+                        </div>
+                        <div>
+                            <strong id="nonPodiumCount">—</strong>
+                            <span>NO PODIUM</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div id="runInfo" class="panel run-info" hidden></div>
+
+            <div class="panel">
+                <div class="panel-label">MODEL VS BASELINE (TEST SET)</div>
+                <p class="note">
+                    Baseline = "driver starts in the top 3 → predict podium".
+                    The model has to beat it to be useful.
+                </p>
+                <table>
+                    <thead>
+                    <tr>
+                        <th>MODEL</th><th>F1</th><th>ROC-AUC</th><th>PR-AUC</th><th>TOP-3 PER RACE</th>
+                    </tr>
+                    </thead>
+                    <tbody id="vsBaseline">
+                    <tr><td colspan="5" class="muted">Run the pipeline.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </section>
+
+
+        <!-- TASK 3 -->
+        <section id="preparation" class="page">
+
+            <header class="section-header">
+                <div class="eyebrow">TASK 03</div>
+                <h1>Data Preparation</h1>
+                <p>Cleaning, missing values, outliers, encoding, scaling and splitting.</p>
+            </header>
+
+            <div class="cards-4">
+
+                <div class="info-card">
+                    <div class="number">01</div>
+                    <h2>Missing Values</h2>
+                    <p>
+                        Continuous features: median imputation. Binary: filled with 0.
+                        Missing qualifying is flagged by <code>quali_missing</code>.
+                        Pit-lane starts (grid = 0) become the last grid slot.
+                    </p>
+                </div>
+
+                <div class="info-card">
+                    <div class="number">02</div>
+                    <h2>Outliers</h2>
+                    <p>
+                        Continuous features are winsorized at the 1st and 99th
+                        percentile. Quantiles are learned on the training set only.
+                    </p>
+                </div>
+
+                <div class="info-card">
+                    <div class="number">03</div>
+                    <h2>Encoding</h2>
+                    <p>
+                        <code>grid_zone</code> (pole, front row, top 6, top 10, midfield,
+                        back, pit lane) is One-Hot encoded. Driver and team names are
+                        not encoded: they are replaced by form features.
+                    </p>
+                </div>
+
+                <div class="info-card">
+                    <div class="number">04</div>
+                    <h2>Scaling</h2>
+                    <p>
+                        Continuous features are standardized with StandardScaler
+                        (important for Logistic Regression and KNN).
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="panel">
+                <div class="panel-label">CHRONOLOGICAL TRAIN / TEST SPLIT</div>
+                <div class="split-bar">
+                    <div id="trainBar" class="train-bar">TRAIN · 80%</div>
+                    <div id="testBar" class="test-bar">TEST · 20%</div>
+                </div>
+                <p id="splitInfo" class="note">
+                    Train = earlier races, test = the most recent races.
+                    The model is always evaluated on the "future", like in real life.
+                </p>
+            </div>
+
+        </section>
+
+
+        <!-- TASK 4 -->
+        <section id="features" class="page">
+
+            <header class="section-header">
+                <div class="eyebrow">TASK 04</div>
+                <h1>Feature Engineering</h1>
+                <p>
+                    New features describe driver form, team strength and the starting
+                    situation. Selection uses correlation analysis and permutation importance.
+                </p>
+            </header>
+
+            <div class="panel">
+                <div class="panel-label">SELECTED FEATURES</div>
+                <table>
+                    <thead>
+                    <tr><th>FEATURE</th><th>TYPE</th><th>WHY IT MATTERS</th></tr>
+                    </thead>
+                    <tbody id="featureTable">
+                    <tr><td colspan="3" class="muted">Run the pipeline.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="dashboard-grid">
+
+                <div class="panel">
+                    <div class="panel-label">REMOVED (|r| &gt; 0.95)</div>
+                    <p class="note">
+                        From each highly correlated pair, the feature with the weaker
+                        link to the target is dropped.
+                    </p>
+                    <div id="droppedFeatures" class="chips">—</div>
+
+                    <div class="panel-label" style="margin-top:24px">TOP CORRELATION WITH TARGET</div>
+                    <div id="targetCorr" class="feature-list">—</div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-label">PERMUTATION IMPORTANCE (TEST)</div>
+                    <p class="note">Drop in PR-AUC when a feature is shuffled.</p>
+                    <div id="featureImportance" class="feature-list">
+                        Run the pipeline to calculate feature importance.
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="panel">
+                    <div class="panel-label">PCA · PATIL ET AL. (2023)</div>
+                    <p class="note" id="pcaNote">Principal component analysis of the continuous features (training set).</p>
+                    <div id="pcaTable"></div>
+                    <div id="pcaChart" class="plot-wrap"></div>
+                </div>
+                <div class="panel">
+                    <div class="panel-label">DRIVER PROFILES · HETTMANN (2024)</div>
+                    <p class="note" id="profileNote">KMeans clusters of driver form (fit on training data only). The profile is used as a categorical feature.</p>
+                    <div id="profileTable"></div>
+                </div>
+            </div>
+
+        </section>
+
+
+        <!-- TASK 5 -->
+        <section id="models" class="page">
+
+            <header class="section-header">
+                <div class="eyebrow">TASK 05</div>
+                <h1>Model Training</h1>
+                <p>
+                    Every candidate model (linear, instance-based, kernel, neural network, bagging, boosting and
+                    stacking) is trained on the same chronological training set with its own preprocessing pipeline.
+                    Each model uses a decision threshold chosen on training folds only. The full ranking and
+                    statistical comparison is on the Model Comparison page.
+                </p>
+            </header>
+
+            <div id="modelsContainer" class="model-grid">
+                <div class="empty-state">Run ML Pipeline</div>
+            </div>
+
+            <div id="modelChartsPanel" class="panel">
+                <div class="panel-label">MODEL CHARTS</div>
+                <p class="note">
+                    Pick a model to see its ROC and precision-recall curves, confusion matrix,
+                    predicted probability distribution, cross-validation folds and test metrics against the baseline.
+                    Click an image to open it in full size.
+                </p>
+                <div id="modelChartTabs" class="tab-row"></div>
+                <div id="modelChartImage" class="plot-wrap">
+                    <div class="empty-state">Run ML Pipeline</div>
+                </div>
+            </div>
+
+        </section>
+
+
+        <!-- TASK 6 -->
+        <section id="cv" class="page">
+
+            <header class="section-header">
+                <div class="eyebrow">TASK 06</div>
+                <h1>Cross-validation</h1>
+                <p>
+                    5-fold stratified cross-validation grouped by race
+                    (rows of one race never appear in both train and validation).
+                </p>
+            </header>
+
+            <div class="panel">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>MODEL</th>
+                        <th>MEAN F1</th>
+                        <th>STD</th>
+                        <th>MEAN ROC-AUC</th>
+                        <th>MEAN PR-AUC</th>
+                        <th>FOLD 1</th>
+                        <th>FOLD 2</th>
+                        <th>FOLD 3</th>
+                        <th>FOLD 4</th>
+                        <th>FOLD 5</th>
+                    </tr>
+                    </thead>
+                    <tbody id="cvTable"></tbody>
+                </table>
+                <p class="note">
+                    Fold columns show F1. The best model (highest mean PR-AUC) is
+                    highlighted and goes to hyperparameter tuning.
+                </p>
+            </div>
+
+        </section>
+
+
+        <!-- TASK 7 -->
+        <section id="tuning" class="page">
+
+            <header class="section-header">
+                <div class="eyebrow">TASK 07</div>
+                <h1>Hyperparameter Tuning</h1>
+                <p id="tuningSubtitle">
+                    GridSearchCV searches for the best configuration of the best model.
+                </p>
+            </header>
+
+            <div class="dashboard-grid">
+
+                <div class="panel">
+                    <div class="panel-label">BEST PARAMETERS</div>
+                    <pre id="bestParameters">Run pipeline...</pre>
+                    <p id="tuningCv" class="note"></p>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-label">BEFORE VS AFTER TUNING (TEST)</div>
+                    <table>
+                        <thead>
+                        <tr><th>METRIC</th><th>BEFORE</th><th>AFTER</th><th>Δ</th></tr>
+                        </thead>
+                        <tbody id="beforeAfter">
+                        <tr><td colspan="4" class="muted">Run the pipeline.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+
+            <div class="dashboard-grid">
+
+                <div class="panel">
+                    <div class="panel-label">FINAL PERFORMANCE</div>
+                    <div id="tunedMetrics" class="metrics"></div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-label">CONFUSION MATRIX</div>
+                    <div id="confusionMatrix" class="cm"></div>
+                </div>
+
+            </div>
+
+            <div class="panel">
+                <div class="panel-label">TUNED MODEL CHARTS</div>
+                <div id="tunedChart" class="plot-wrap">
+                    <div class="empty-state">Run ML Pipeline</div>
+                </div>
+            </div>
+
+        </section>
+
+
+        <!-- PREDICTIONS -->
+                <section id="comparison" class="page">
+
+            <header class="section-header">
+                <div class="eyebrow">TASK 08</div>
+                <h1>Model <span>Comparison</span></h1>
+                <p>
+                    All candidate models are evaluated with the same protocol: chronological train/test split,
+                    5-fold cross-validation grouped by race, and a bootstrap over unseen test races.
+                    This page answers three questions: which model is best, by how much, and whether the
+                    difference is real or just noise.
+                </p>
+            </header>
+
+            <div id="cmpKpis" class="kpi-grid">
+                <div class="empty-state">Run ML Pipeline</div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-label">KEY FINDINGS</div>
+                <div id="cmpFindings" class="finding-list">
+                    <div class="empty-state">Run ML Pipeline</div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-label">LEADERBOARD</div>
+                <h2>All models, ranked by cross-validated PR-AUC</h2>
+                <div class="table-scroll">
+                    <table>
+                        <thead>
+                        <tr>
+                            <th rowspan="2">#</th>
+                            <th rowspan="2">MODEL</th>
+                            <th rowspan="2">FAMILY</th>
+                            <th colspan="4">CROSS-VALIDATION (TRAIN)</th>
+                            <th colspan="7">TEST (UNSEEN SEASONS)</th>
+                            <th rowspan="2">FIT TIME</th>
+                        </tr>
+                        <tr>
+                            <th>PR-AUC</th><th>ROC-AUC</th><th>F1</th><th>TOP-3</th>
+                            <th>PR-AUC</th><th>ROC-AUC</th><th>F1</th><th>TOP-3</th><th>&Delta; VS BASELINE</th><th>BRIER</th><th>LOG-LOSS</th>
+                        </tr>
+                        </thead>
+                        <tbody id="cmpTable"></tbody>
+                    </table>
+                </div>
+                <p class="note">
+                    Green cells mark the best value in each column. "Top-3" is the share of true podium finishers
+                    found among the 3 drivers with the highest predicted probability in each race.
+                    The baseline simply predicts that the 3 drivers starting in front finish on the podium.
+                    &Delta; is in percentage points of Top-3 hit rate. Cross-validation values show mean &plusmn; standard
+                    deviation over 5 folds. Brier score and log-loss measure probability quality (lower is better).
+                </p>
+                <div class="btn-row">
+                    <button type="button" class="ghost-btn" id="exportCsv">EXPORT LEADERBOARD (CSV)</button>
+                    <button type="button" class="ghost-btn" id="exportJson">EXPORT FULL RESULTS (JSON)</button>
+                </div>
+            </div>
+
+            <div id="cmpMultilevel" class="panel" hidden></div>
+
+            <div id="cmpBars" class="cards-4"></div>
+
+            <div class="panel">
+                <div class="panel-label">VISUAL COMPARISON</div>
+                <h2>All models side by side</h2>
+                <div id="cmpCharts" class="chart-stack">
+                    <div class="empty-state">Run ML Pipeline</div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-label">STATISTICAL SIGNIFICANCE</div>
+                <h2>Is the difference between models real?</h2>
+                <p>
+                    The test set contains a limited number of races, so a gap of one or two points can be pure luck.
+                    To check this, races were resampled with replacement 300 times (bootstrap) and 95% confidence
+                    intervals were computed. A model is only credited with beating the baseline if the whole interval of
+                    the difference lies above zero.
+                </p>
+                <div class="table-scroll">
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>MODEL</th>
+                            <th>TOP-3 HIT RATE (95% CI)</th>
+                            <th>&Delta; TOP-3 VS BASELINE (95% CI)</th>
+                            <th>VERDICT</th>
+                            <th>PR-AUC (95% CI)</th>
+                            <th>&Delta; PR-AUC VS BASELINE (95% CI)</th>
+                            <th>VERDICT</th>
+                            <th>McNEMAR p (VS BASELINE)</th>
+                        </tr>
+                        </thead>
+                        <tbody id="cmpCi"></tbody>
+                    </table>
+                </div>
+                <p id="cmpCiNote" class="note"></p>
+            </div>
+
+            <div class="panel">
+                <div class="panel-label">MODEL PROFILES</div>
+                <h2>What each model does, and why it did or did not work here</h2>
+                <div id="cmpProfiles" class="model-grid">
+                    <div class="empty-state">Run ML Pipeline</div>
+                </div>
+            </div>
+
+            <div class="cards-2">
+                <div class="panel">
+                    <div class="panel-label">EVALUATION PROTOCOL</div>
+                    <h2>Why the comparison is fair</h2>
+                    <p>
+                        <strong>Same data:</strong> every model sees the same features, the same chronological split
+                        (earlier seasons for training, latest seasons for testing) and the same folds.<br><br>
+                        <strong>No leakage:</strong> all features are built only from information available before
+                        the race, and folds are grouped by race so that drivers of one race never appear in both
+                        training and validation.<br><br>
+                        <strong>Own preprocessing:</strong> each model has its own scaler and encoder fitted
+                        inside the pipeline on training data only.<br><br>
+                        <strong>Threshold:</strong> the decision threshold is selected on out-of-fold predictions,
+                        never on the test set.
+                    </p>
+                </div>
+                <div class="panel">
+                    <div class="panel-label">METRICS EXPLAINED</div>
+                    <h2>How to read the numbers</h2>
+                    <p>
+                        <strong>PR-AUC</strong> (main selection metric): area under the precision-recall curve.
+                        It is robust to class imbalance (only 3 of about 20 drivers reach the podium) and does not depend
+                        on a threshold.<br><br>
+                        <strong>ROC-AUC:</strong> probability that a random podium finisher is ranked above a random
+                        non-podium driver.<br><br>
+                        <strong>F1:</strong> harmonic mean of precision and recall at the chosen threshold.<br><br>
+                        <strong>Top-3 hit rate:</strong> a race-level metric that matches the real task, picking the three
+                        drivers most likely to stand on the podium.
+                    </p>
+                </div>
+            </div>
+
+        </section>
+
+        <section id="predictions" class="page">
+
+            <header class="section-header">
+                <div class="eyebrow">RESULTS</div>
+                <h1>Race Predictions</h1>
+                <p>
+                    Podium probabilities for the latest races of the test set.
+                    The model never saw these races during training.
+                </p>
+            </header>
+
+            <div class="kpi-grid kpi-grid-3">
+                <div class="kpi-card">
+                    <span>MODEL TOP-3 HIT RATE</span>
+                    <strong id="hitModel">—</strong>
+                    <small>actual podium drivers found among 3 most likely</small>
+                </div>
+                <div class="kpi-card">
+                    <span>BASELINE TOP-3 HIT RATE</span>
+                    <strong id="hitBaseline">—</strong>
+                    <small>3 best grid positions</small>
+                </div>
+                <div class="kpi-card">
+                    <span>IMPROVEMENT</span>
+                    <strong id="hitDelta">—</strong>
+                    <small>model minus baseline</small>
+                </div>
+            </div>
+
+            <div id="sampleContainer" class="sample-grid">
+                <div class="empty-state">Run ML Pipeline</div>
+            </div>
+
+        </section>
+
+        <!-- RACE EXPLORER -->
+        <section id="explorer" class="page">
+            <header class="section-header">
+                <div class="eyebrow">APP</div>
+                <h1>Race <span>Explorer</span></h1>
+                <p>
+                    Pick any race from the unseen test seasons and any model. The table shows the podium probability
+                    the model gave to each driver before the race, next to what really happened.
+                </p>
+            </header>
+            <div class="toolbar">
+                <label>RACE <select id="exRace"></select></label>
+                <label>MODEL <select id="exModel"></select></label>
+            </div>
+            <div id="exKpis" class="kpi-grid kpi-grid-3"></div>
+            <div class="dashboard-grid">
+                <div class="panel">
+                    <div class="panel-label">DRIVERS · SORTED BY PREDICTED PROBABILITY</div>
+                    <div class="table-scroll"><table>
+                        <thead><tr><th>#</th><th>DRIVER</th><th>TEAM</th><th>GRID</th><th>PODIUM PROBABILITY</th><th>ACTUAL</th></tr></thead>
+                        <tbody id="exTable"><tr><td colspan="6" class="muted">Run the pipeline.</td></tr></tbody>
+                    </table></div>
+                </div>
+                <div class="panel">
+                    <div class="panel-label">ALL MODELS ON THIS RACE</div>
+                    <p class="note">How many of the real podium finishers each model found among its 3 most likely drivers.</p>
+                    <div id="exModels"></div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- WHAT-IF -->
+        <section id="predictor" class="page">
+            <header class="section-header">
+                <div class="eyebrow">APP</div>
+                <h1>What-if <span>Predictor</span></h1>
+                <p>
+                    Load a real driver from a test race, then change the grid position or form and watch every model
+                    update its podium probability. This calls the trained models on the server (<code>/api/predict</code>).
+                </p>
+            </header>
+            <div class="toolbar">
+                <label>RACE <select id="wiRace"></select></label>
+                <label>DRIVER <select id="wiDriver"></select></label>
+                <button type="button" class="ghost-btn" id="wiReset">RESET TO REAL VALUES</button>
+            </div>
+            <div class="dashboard-grid">
+                <div class="panel">
+                    <div class="panel-label">INPUTS</div>
+                    <div id="wiSliders" class="sliders"><div class="empty-state">Run the pipeline first</div></div>
+                </div>
+                <div class="panel">
+                    <div class="panel-label">PODIUM PROBABILITY BY MODEL</div>
+                    <div id="wiOutput"></div>
+                    <p class="note" id="wiNote"></p>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- LITERATURE MAP -->
+        <section id="literature" class="page">
+            <header class="section-header">
+                <div class="eyebrow">LITERATURE REVIEW → CODE</div>
+                <h1>Literature <span>Map</span></h1>
+                <p>
+                    Every method from the literature review and where it lives in this project.
+                    Live metrics come from the last pipeline run.
+                </p>
+            </header>
+            <div class="panel">
+                <div id="litSummary" class="chips"></div>
+                <div class="table-scroll"><table>
+                    <thead><tr><th>#</th><th>SOURCE</th><th>METHOD IN THE PAPER</th><th>IN THIS PROJECT</th><th>STATUS</th><th>LIVE RESULT</th></tr></thead>
+                    <tbody id="litTable"></tbody>
+                </table></div>
+            </div>
+        </section>
+
+
+        <!-- LAB / RUN SETTINGS -->
+        <section id="lab" class="page">
+            <header class="section-header">
+                <div class="eyebrow">SYSTEM</div>
+                <h1>Run <span>Settings</span></h1>
+                <p>
+                    Choose which models to train. Quick mode skips the slowest ones (SVM, Stacking, Extra Trees,
+                    EDNN-style and the PyTorch sequence models). The pipeline runs in the background and
+                    the progress is shown live.
+                </p>
+            </header>
+            <div class="panel">
+                <div class="panel-label">MODELS</div>
+                <div class="btn-row">
+                    <button type="button" class="ghost-btn" id="labAll">SELECT ALL</button>
+                    <button type="button" class="ghost-btn" id="labFast">FAST SET ONLY</button>
+                    <button type="button" class="ghost-btn" id="labNone">CLEAR</button>
+                </div>
+                <div id="labModels" class="check-grid"></div>
+                <div class="btn-row">
+                    <button type="button" class="run-button inline" id="labRun">RUN WITH THESE MODELS</button>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-label">PROGRESS</div>
+                <div class="progress big"><div id="labProgress" class="progress-bar"></div></div>
+                <pre id="labLog" class="log-box">Idle.</pre>
+            </div>
+        </section>
+
+    </main>
+</div>
+
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
