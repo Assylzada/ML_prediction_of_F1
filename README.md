@@ -336,9 +336,7 @@ http://127.0.0.1:5000
 
 **Assylzada Nurbayeva**
 
-Software Engineering Student | Python Developer | Machine Learning Enthusiast
-
-Interested in Backend Development, Artificial Intelligence, Machine Learning, and building practical software solutions.
+Software Engineering | Python Developer | Machine Learning 
 
 **GitHub:** [@Assylzada](https://github.com/Assylzada)
 
